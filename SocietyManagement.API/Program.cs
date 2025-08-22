@@ -3,11 +3,13 @@ using FluentValidation;
 using FluentValidation.AspNetCore;
 using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using SocietyManagement.API.Middleware;
 using SocietyManagement.Application.Interfaces.Repositories;
 using SocietyManagement.Application.Interfaces.Services;
+using SocietyManagement.Domain.Entities;
 using SocietyManagement.Infrastructure.Persistence;
 using SocietyManagement.Infrastructure.Repositories;
 using SocietyManagement.Infrastructure.Services;
@@ -26,6 +28,11 @@ builder.Services.AddScoped<IOtpService, OtpService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IFileStorageService, FileStorageService>();
+
+builder.Services.AddIdentityCore<Member>()
+    .AddRoles<IdentityRole<Guid>>()
+    .AddEntityFrameworkStores<ApplicationDbContext>()
+    .AddSignInManager();
 
 builder.Services.AddMediatR(typeof(SocietyManagement.Application.Features.Auth.Commands.RegisterSocietyCommand).Assembly);
 builder.Services.AddValidatorsFromAssembly(typeof(SocietyManagement.Application.Validators.RegisterSocietyDtoValidator).Assembly);

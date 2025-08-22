@@ -13,5 +13,5 @@ public class MemberRepository : GenericRepository<Member>, IMemberRepository
         _dbSet.FirstOrDefaultAsync(m => m.Email == email);
 
     public Task<Member?> GetByMobileAsync(string mobileNumber) =>
-        _dbSet.FirstOrDefaultAsync(m => m.MobileNumber == mobileNumber);
+        _dbSet.FirstOrDefaultAsync(m => m.PhoneNumber == mobileNumber);
 }
