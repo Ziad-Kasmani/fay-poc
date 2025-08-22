@@ -18,8 +18,8 @@ public class GetMembersQueryHandler : IRequestHandler<GetMembersQuery, IEnumerab
             Id = m.Id,
             FirstName = m.FirstName,
             LastName = m.LastName,
-            Email = m.Email,
-            MobileNumber = m.MobileNumber,
+            Email = m.Email!,
+            MobileNumber = m.PhoneNumber ?? string.Empty,
             Role = m.Role
         });
     }

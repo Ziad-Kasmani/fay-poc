@@ -1,9 +1,11 @@
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using SocietyManagement.Domain.Entities;
 
 namespace SocietyManagement.Infrastructure.Persistence;
 
-public class ApplicationDbContext : DbContext
+public class ApplicationDbContext : IdentityDbContext<Member, IdentityRole<Guid>, Guid>
 {
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
         : base(options) { }
@@ -24,10 +26,10 @@ public class ApplicationDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        base.OnModelCreating(modelBuilder);
+
         modelBuilder.Entity<Member>()
-            .HasIndex(m => m.Email).IsUnique();
-        modelBuilder.Entity<Member>()
-            .HasIndex(m => m.MobileNumber).IsUnique();
+            .HasIndex(m => m.PhoneNumber).IsUnique();
 
         modelBuilder.Entity<Member>()
             .HasMany(m => m.Flats)
@@ -48,7 +50,5 @@ public class ApplicationDbContext : DbContext
             .HasOne(v => v.PollOption)
             .WithMany(o => o.Votes)
             .HasForeignKey(v => v.PollOptionId);
-
-        base.OnModelCreating(modelBuilder);
     }
 }

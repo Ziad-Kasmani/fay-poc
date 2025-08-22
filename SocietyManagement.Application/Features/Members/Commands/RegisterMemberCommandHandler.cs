@@ -1,17 +1,16 @@
 using MediatR;
+using Microsoft.AspNetCore.Identity;
 using SocietyManagement.Application.DTOs;
-using SocietyManagement.Application.Interfaces.Repositories;
 using SocietyManagement.Domain.Entities;
-using System.Security.Cryptography;
-using System.Text;
+using System.Linq;
 
 namespace SocietyManagement.Application.Features.Members.Commands;
 
 public class RegisterMemberCommandHandler : IRequestHandler<RegisterMemberCommand, MemberDto>
 {
-    private readonly IUnitOfWork _uow;
+    private readonly UserManager<Member> _userManager;
 
-    public RegisterMemberCommandHandler(IUnitOfWork uow) => _uow = uow;
+    public RegisterMemberCommandHandler(UserManager<Member> userManager) => _userManager = userManager;
 
     public async Task<MemberDto> Handle(RegisterMemberCommand request, CancellationToken cancellationToken)
     {
@@ -22,30 +21,24 @@ public class RegisterMemberCommandHandler : IRequestHandler<RegisterMemberComman
             FirstName = dto.FirstName,
             LastName = dto.LastName,
             Email = dto.Email,
-            MobileNumber = dto.MobileNumber,
-            PasswordHash = HashPassword(dto.Password),
+            UserName = dto.Email,
+            PhoneNumber = dto.MobileNumber,
             Role = dto.Role,
             SocietyId = dto.SocietyId
         };
 
-        await _uow.Members.AddAsync(member);
-        await _uow.SaveChangesAsync();
+        var result = await _userManager.CreateAsync(member, dto.Password);
+        if (!result.Succeeded)
+            throw new Exception(string.Join(", ", result.Errors.Select(e => e.Description)));
 
         return new MemberDto
         {
             Id = member.Id,
             FirstName = member.FirstName,
             LastName = member.LastName,
-            Email = member.Email,
-            MobileNumber = member.MobileNumber,
+            Email = member.Email!,
+            MobileNumber = member.PhoneNumber ?? string.Empty,
             Role = member.Role
         };
-    }
-
-    private static string HashPassword(string password)
-    {
-        using var sha = SHA256.Create();
-        var bytes = sha.ComputeHash(Encoding.UTF8.GetBytes(password));
-        return Convert.ToBase64String(bytes);
     }
 }

@@ -1,10 +1,10 @@
 using MediatR;
+using Microsoft.AspNetCore.Identity;
 using SocietyManagement.Application.Interfaces.Repositories;
 using SocietyManagement.Application.Interfaces.Services;
 using SocietyManagement.Domain.Entities;
 using SocietyManagement.Domain.Enums;
-using System.Security.Cryptography;
-using System.Text;
+using System.Linq;
 
 namespace SocietyManagement.Application.Features.Auth.Commands;
 
@@ -12,11 +12,13 @@ public class RegisterSocietyCommandHandler : IRequestHandler<RegisterSocietyComm
 {
     private readonly IUnitOfWork _uow;
     private readonly IOtpService _otpService;
+    private readonly UserManager<Member> _userManager;
 
-    public RegisterSocietyCommandHandler(IUnitOfWork uow, IOtpService otpService)
+    public RegisterSocietyCommandHandler(IUnitOfWork uow, IOtpService otpService, UserManager<Member> userManager)
     {
         _uow = uow;
         _otpService = otpService;
+        _userManager = userManager;
     }
 
     public async Task<Guid> Handle(RegisterSocietyCommand request, CancellationToken cancellationToken)
@@ -32,32 +34,26 @@ public class RegisterSocietyCommandHandler : IRequestHandler<RegisterSocietyComm
             CreatedAt = DateTime.UtcNow
         };
 
+        await _uow.Societies.AddAsync(society);
+        await _uow.SaveChangesAsync();
+
         var member = new Member
         {
             Id = Guid.NewGuid(),
             FirstName = dto.AdminFirstName,
             LastName = dto.AdminLastName,
             Email = dto.Email,
-            MobileNumber = dto.MobileNumber,
-            PasswordHash = HashPassword(dto.Password),
+            UserName = dto.Email,
+            PhoneNumber = dto.MobileNumber,
             Role = MemberRole.Admin,
-            SocietyId = society.Id,
-            IsEmailVerified = false,
-            IsMobileVerified = false
+            SocietyId = society.Id
         };
 
-        await _uow.Societies.AddAsync(society);
-        await _uow.Members.AddAsync(member);
-        await _uow.SaveChangesAsync();
+        var result = await _userManager.CreateAsync(member, dto.Password);
+        if (!result.Succeeded)
+            throw new Exception(string.Join(", ", result.Errors.Select(e => e.Description)));
 
-        await _otpService.GenerateOtpAsync(member.Email);
+        await _otpService.GenerateOtpAsync(member.Email!);
         return society.Id;
-    }
-
-    private static string HashPassword(string password)
-    {
-        using var sha = SHA256.Create();
-        var bytes = sha.ComputeHash(Encoding.UTF8.GetBytes(password));
-        return Convert.ToBase64String(bytes);
     }
 }
